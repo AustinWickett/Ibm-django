@@ -37,5 +37,234 @@ class Submission(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
 
+from django.contrib import admin
+from .models import Question, Choice
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Choice)
+class ChoiceAdmin(admin.ModelAdmin):
+    pass
+
+
     def __str__(self):
         return f"{self.user.username} - {self.assessment.title} - {self.question.text}"
+<!-- existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <ul>
+      {% for question in exam.question_set.all %}
+        <li>
+          <p>{{ question.text }}</p>
+          <ul>
+            {% for choice in question.choice_set.all %}
+              <li>{{ choice.choice_text }}</li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
+<!-- existing exam result content -->
+
+<!-- Result section -->
+<section>
+  <h2>Exam Result</h2>
+  <p>Submission Date: {{ submission.submission_date }}</p>
+  <p>Exam: {{ submission.assessment.title }}</p>
+
+  <ul>
+    {% for question in submission.assessment.question_set.all %}
+      <li>
+        <p>{{ question.text }}</p>
+        <ul>
+          {% for choice in question.choice_set.all %}
+            <li{% if choice.is_correct %} class="correct"{% endif %}>
+              {{ choice.choice_text }}
+              {% if choice.is_correct and choice == submission.selected_choice %}
+                <span class="result">Correct</span>
+              {% elif choice.is_correct %}
+                <span class="result">Correct Answer</span>
+              {% elseif choice == submission.selected_choice %}
+                <span class="result">Selected</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from .models import Assessment, Choice, Submission
+
+def submit_exam(request, assessment_id):
+    assessment = get_object_or_404(Assessment, pk=assessment_id)
+
+    if request.method == 'POST':
+        # Assuming you have form data containing selected_choice_ids
+        selected_choice_ids = request.POST.getlist('selected_choices')
+        selected_choices = Choice.objects.filter(pk__in=selected_choice_ids)
+
+        # Create the submission object
+        submission = Submission.objects.create(
+            user=request.user,  # Assuming user authentication is implemented
+            assessment=assessment
+        )
+
+        # Assign the selected choices to the submission
+        submission.choices.set(selected_choices)
+
+        # Redirect to the exam result page
+        return HttpResponseRedirect(reverse('exam_result', args=(submission.id,)))
+
+    # Render the submission page with the assessment and choices
+    return render(request, 'submission.html', {'assessment': assessment})
+
+
+from django.shortcuts import get_object_or_404, render
+from .models import Submission
+
+def evaluate_submission(request, submission_id):
+    submission = get_object_or_404(Submission, pk=submission_id)
+
+    # Add your evaluation logic here
+    # You can access the related objects like submission.user, submission.assessment, submission.choices, etc.
+    # Perform the evaluation and store the result in a variable (e.g., is_passed)
+
+    # Render the evaluation result page with the submission and evaluation result
+    return render(request, 'evaluation.html', {'submission': submission, 'is_passed': is_passed})
+from django.urls import path
+from .views import evaluate_submission
+
+urlpatterns = [
+    # Other URL patterns
+    path('evaluate_submission/<int:submission_id>/', evaluate_submission, name='evaluate_submission'),
+
+<!-- Existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <form method="post" action="{% url 'submit_exam' assessment_id=exam.id %}">
+      {% csrf_token %}
+      <ul>
+        {% for question in exam.question_set.all %}
+          <li>
+            <p>{{ question.text }}</p>
+            <ul>
+              {% for choice in question.choice_set.all %}
+                <li>
+                  <input type="radio" name="selected_choices" value="{{ choice.id }}" id="choice_{{ choice.id }}">
+                  <label for="choice_{{ choice.id }}">{{ choice.choice_text }}</label>
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+      <button type="submit">Submit Exam</button>
+    </form>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
+
+<!-- Existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <ul>
+      {% for question in exam.question_set.all %}
+        <li>
+          <p>{{ question.text }}</p>
+          <ul>
+            {% for choice in question.choice_set.all %}
+              <li{% if choice.id == submission.selected_choice.id %} class="selected"{% endif %}>
+                {{ choice.choice_text }}
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
+
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from .models import Exam, Choice, Submission
+
+def submit_exam(request, exam_id):
+    exam = get_object_or_404(Exam, pk=exam_id)
+
+    if request.method == 'POST':
+        selected_choices = request.POST.getlist('selected_choices')
+        choices = Choice.objects.filter(pk__in=selected_choices)
+
+        submission = Submission.objects.create(exam=exam)
+        submission.choices.set(choices)
+
+        return HttpResponseRedirect(reverse('exam_result', args=(submission.id,)))
+
+    return render(request, 'submit_exam.html', {'exam': exam})
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from .models import Exam, Choice, Submission
+
+def submit_exam(request, exam_id):
+    exam = get_object_or_404(Exam, pk=exam_id)
+
+    if request.method == 'POST':
+        selected_choices = request.POST.getlist('selected_choices')
+        choices = Choice.objects.filter(pk__in=selected_choices)
+
+        submission = Submission.objects.create(exam=exam)
+        submission.choices.set(choices)
+
+        return HttpResponseRedirect(reverse('exam_result', args=(submission.id,)))
+
+    return render(request, 'submit_exam.html', {'exam': exam})
+
+
+def exam_result(request, submission_id):
+    submission = get_object_or_404(Submission, pk=submission_id)
+    # Add your result evaluation logic here
+    # You can access related objects like submission.exam, submission.choices, etc.
+    # Determine the exam result and store it in a variable (e.g., is_passed)
+
+    return render(request, 'exam_result.html', {'submission': submission, 'is_passed': is_passed})
+from django.urls import path
+from .views import submit_exam, exam_result
+
+urlpatterns = [
+    # Other URL patterns
+    path('exam/<int:exam_id>/submit/', submit_exam, name='submit_exam'),
+    path('exam_result/<int:submission_id>/', exam_result, name='exam_result'),
+]
