@@ -1,0 +1,30 @@
+<!-- existing exam result content -->
+
+<!-- Result section -->
+<section>
+  <h2>Exam Result</h2>
+  <p>Submission Date: {{ submission.submission_date }}</p>
+  <p>Exam: {{ submission.assessment.title }}</p>
+
+  <ul>
+    {% for question in submission.assessment.question_set.all %}
+      <li>
+        <p>{{ question.text }}</p>
+        <ul>
+          {% for choice in question.choice_set.all %}
+            <li{% if choice.is_correct %} class="correct"{% endif %}>
+              {{ choice.choice_text }}
+              {% if choice.is_correct and choice == submission.selected_choice %}
+                <span class="result">Correct</span>
+              {% elif choice.is_correct %}
+                <span class="result">Correct Answer</span>
+              {% elseif choice == submission.selected_choice %}
+                <span class="result">Selected</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
