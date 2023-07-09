@@ -1,0 +1,58 @@
+<!-- Existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <form method="post" action="{% url 'submit_exam' assessment_id=exam.id %}">
+      {% csrf_token %}
+      <ul>
+        {% for question in exam.question_set.all %}
+          <li>
+            <p>{{ question.text }}</p>
+            <ul>
+              {% for choice in question.choice_set.all %}
+                <li>
+                  <input type="radio" name="selected_choices" value="{{ choice.id }}" id="choice_{{ choice.id }}">
+                  <label for="choice_{{ choice.id }}">{{ choice.choice_text }}</label>
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+      <button type="submit">Submit Exam</button>
+    </form>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
+
+<!-- Existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <ul>
+      {% for question in exam.question_set.all %}
+        <li>
+          <p>{{ question.text }}</p>
+          <ul>
+            {% for choice in question.choice_set.all %}
+              <li{% if choice.id == submission.selected_choice.id %} class="selected"{% endif %}>
+                {{ choice.choice_text }}
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
