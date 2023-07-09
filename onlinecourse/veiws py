@@ -1,0 +1,28 @@
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from .models import Assessment, Choice, Submission
+
+def submit_exam(request, assessment_id):
+    assessment = get_object_or_404(Assessment, pk=assessment_id)
+
+    if request.method == 'POST':
+        # Assuming you have form data containing selected_choice_ids
+        selected_choice_ids = request.POST.getlist('selected_choices')
+        selected_choices = Choice.objects.filter(pk__in=selected_choice_ids)
+
+        # Create the submission object
+        submission = Submission.objects.create(
+            user=request.user,  # Assuming user authentication is implemented
+            assessment=assessment
+        )
+
+        # Assign the selected choices to the submission
+        submission.choices.set(selected_choices)
+
+        # Redirect to the exam result page
+        return HttpResponseRedirect(reverse('exam_result', args=(submission.id,)))
+
+    # Render the submission page with the assessment and choices
+    return render(request, 'submission.html', {'assessment': assessment})
