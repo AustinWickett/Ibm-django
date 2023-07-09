@@ -1,0 +1,24 @@
+<!-- existing course detail content -->
+
+<!-- Exam section -->
+<section>
+  <h2>Exam</h2>
+  {% if exam %}
+    <h3>{{ exam.title }}</h3>
+    <p>{{ exam.description }}</p>
+    <ul>
+      {% for question in exam.question_set.all %}
+        <li>
+          <p>{{ question.text }}</p>
+          <ul>
+            {% for choice in question.choice_set.all %}
+              <li>{{ choice.choice_text }}</li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No exam available for this course.</p>
+  {% endif %}
+</section>
